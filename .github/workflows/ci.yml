@@ -1,0 +1,54 @@
+name: Backend CI
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Build and test
+    runs-on: ubuntu-latest
+
+    services:
+      database:
+        image: postgis/postgis:17-3.5
+        env:
+          POSTGRES_DB: sport_booking
+          POSTGRES_USER: sport_booking
+          POSTGRES_PASSWORD: sport_booking
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sport_booking -d sport_booking"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: jdbc:postgresql://localhost:5432/sport_booking
+      DATABASE_USERNAME: sport_booking
+      DATABASE_PASSWORD: sport_booking
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x gradlew
+
+      - name: Run tests
+        run: ./gradlew test --no-daemon
