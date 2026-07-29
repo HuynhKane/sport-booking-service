@@ -1,0 +1,940 @@
+openapi: 3.1.0
+info:
+  title: Sport Booking Service API
+  version: 0.1.0
+  description: >
+    API contract for the Ho Chi Minh City badminton-court marketplace MVP.
+    Payments, memberships, reviews, and dynamic pricing are outside this version.
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development
+tags:
+  - name: Discovery
+  - name: Venues
+  - name: Courts
+  - name: Bookings
+  - name: Waitlist
+
+paths:
+  /venues:
+    get:
+      tags: [Discovery]
+      summary: Discover active venues
+      operationId: discoverVenues
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/Latitude"
+        - $ref: "#/components/parameters/Longitude"
+        - name: radiusMeters
+          in: query
+          schema:
+            type: integer
+            minimum: 100
+            maximum: 50000
+            default: 5000
+        - name: availableFrom
+          in: query
+          description: Include venues with at least one available court from this instant.
+          schema:
+            type: string
+            format: date-time
+        - name: availableTo
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Size"
+      responses:
+        "200":
+          description: Matching venues
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VenuePage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+    post:
+      tags: [Venues]
+      summary: Create a venue
+      operationId: createVenue
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateVenueRequest"
+      responses:
+        "201":
+          description: Venue created
+          headers:
+            Location:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Venue"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /venues/{venueId}:
+    parameters:
+      - $ref: "#/components/parameters/VenueId"
+    get:
+      tags: [Discovery]
+      summary: Get venue details
+      operationId: getVenue
+      security: []
+      responses:
+        "200":
+          description: Venue details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VenueDetail"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Venues]
+      summary: Update an owned venue
+      operationId: updateVenue
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateVenueRequest"
+      responses:
+        "200":
+          description: Venue updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Venue"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /venues/{venueId}/courts:
+    parameters:
+      - $ref: "#/components/parameters/VenueId"
+    get:
+      tags: [Courts]
+      summary: List courts at a venue
+      operationId: listCourts
+      security: []
+      responses:
+        "200":
+          description: Courts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Court"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      tags: [Courts]
+      summary: Create a court at an owned venue
+      operationId: createCourt
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCourtRequest"
+      responses:
+        "201":
+          description: Court created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Court"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /courts/{courtId}/availability:
+    parameters:
+      - $ref: "#/components/parameters/CourtId"
+      - name: from
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+      - name: to
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+    get:
+      tags: [Discovery]
+      summary: Get derived court availability
+      operationId: getCourtAvailability
+      security: []
+      responses:
+        "200":
+          description: Available intervals
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CourtAvailability"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /courts/{courtId}/blocks:
+    parameters:
+      - $ref: "#/components/parameters/CourtId"
+    post:
+      tags: [Courts]
+      summary: Block a court interval
+      operationId: createCourtBlock
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCourtBlockRequest"
+      responses:
+        "201":
+          description: Court interval blocked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CourtBlock"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /bookings:
+    get:
+      tags: [Bookings]
+      summary: List bookings visible to the current user
+      description: Players see their bookings. Owners can filter bookings for venues they own.
+      operationId: listBookings
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: venueId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/BookingStatus"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Size"
+      responses:
+        "200":
+          description: Visible bookings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookingPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      tags: [Bookings]
+      summary: Create a booking
+      description: >
+        Players book for themselves. Owners may specify a playerUserId when booking
+        on behalf of a registered player. Overlapping active bookings return 409.
+      operationId: createBooking
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBookingRequest"
+      responses:
+        "201":
+          description: Booking created
+          headers:
+            Location:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /bookings/{bookingId}:
+    parameters:
+      - $ref: "#/components/parameters/BookingId"
+    get:
+      tags: [Bookings]
+      summary: Get a visible booking
+      operationId: getBooking
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Booking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /bookings/{bookingId}/cancellation:
+    parameters:
+      - $ref: "#/components/parameters/BookingId"
+    post:
+      tags: [Bookings]
+      summary: Cancel a booking
+      operationId: cancelBooking
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CancelBookingRequest"
+      responses:
+        "200":
+          description: Cancelled booking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /waitlist-entries:
+    get:
+      tags: [Waitlist]
+      summary: List the current player's waitlist entries
+      operationId: listMyWaitlistEntries
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Size"
+      responses:
+        "200":
+          description: Waitlist entries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WaitlistEntryPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      tags: [Waitlist]
+      summary: Join the waitlist for a court interval
+      operationId: createWaitlistEntry
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateWaitlistEntryRequest"
+      responses:
+        "201":
+          description: Waitlist entry created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WaitlistEntry"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /waitlist-entries/{waitlistEntryId}:
+    parameters:
+      - name: waitlistEntryId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    delete:
+      tags: [Waitlist]
+      summary: Leave a waitlist
+      operationId: cancelWaitlistEntry
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: Waitlist entry cancelled
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    VenueId:
+      name: venueId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    CourtId:
+      name: courtId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    BookingId:
+      name: bookingId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    Latitude:
+      name: latitude
+      in: query
+      schema:
+        type: number
+        format: double
+        minimum: -90
+        maximum: 90
+    Longitude:
+      name: longitude
+      in: query
+      schema:
+        type: number
+        format: double
+        minimum: -180
+        maximum: 180
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    Size:
+      name: size
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    Unauthorized:
+      description: Authentication is required or invalid
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    Forbidden:
+      description: The caller cannot perform this operation
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    NotFound:
+      description: Resource not found
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    Conflict:
+      description: The request conflicts with current resource state
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+
+  schemas:
+    VenueStatus:
+      type: string
+      enum: [DRAFT, ACTIVE, INACTIVE]
+    CourtStatus:
+      type: string
+      enum: [ACTIVE, INACTIVE, MAINTENANCE]
+    BookingStatus:
+      type: string
+      enum: [PENDING, CONFIRMED, COMPLETED, CANCELLED, NO_SHOW]
+    WaitlistStatus:
+      type: string
+      enum: [WAITING, OFFERED, FULFILLED, EXPIRED, CANCELLED]
+
+    Coordinates:
+      type: object
+      required: [latitude, longitude]
+      properties:
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+
+    CreateVenueRequest:
+      type: object
+      required: [name, addressLine, district, location]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 160
+        description:
+          type: string
+          maxLength: 2000
+        phoneNumber:
+          type: string
+          maxLength: 30
+        addressLine:
+          type: string
+          maxLength: 255
+        ward:
+          type: string
+          maxLength: 120
+        district:
+          type: string
+          maxLength: 120
+        location:
+          $ref: "#/components/schemas/Coordinates"
+
+    UpdateVenueRequest:
+      type: object
+      minProperties: 1
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 160
+        description:
+          type: string
+          maxLength: 2000
+        phoneNumber:
+          type: string
+          maxLength: 30
+        status:
+          $ref: "#/components/schemas/VenueStatus"
+
+    Venue:
+      type: object
+      required: [id, name, addressLine, district, city, location, timezone, status]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        phoneNumber:
+          type: string
+        addressLine:
+          type: string
+        ward:
+          type: string
+        district:
+          type: string
+        city:
+          type: string
+        location:
+          $ref: "#/components/schemas/Coordinates"
+        timezone:
+          type: string
+          example: Asia/Ho_Chi_Minh
+        status:
+          $ref: "#/components/schemas/VenueStatus"
+        distanceMeters:
+          type: integer
+          minimum: 0
+
+    VenueDetail:
+      allOf:
+        - $ref: "#/components/schemas/Venue"
+        - type: object
+          required: [courts]
+          properties:
+            courts:
+              type: array
+              items:
+                $ref: "#/components/schemas/Court"
+
+    VenuePage:
+      type: object
+      required: [items, page, size, totalItems, totalPages]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Venue"
+        page:
+          type: integer
+        size:
+          type: integer
+        totalItems:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    CreateCourtRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 1000
+
+    Court:
+      type: object
+      required: [id, venueId, name, status]
+      properties:
+        id:
+          type: string
+          format: uuid
+        venueId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        status:
+          $ref: "#/components/schemas/CourtStatus"
+
+    TimeInterval:
+      type: object
+      required: [startsAt, endsAt]
+      properties:
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: string
+          format: date-time
+
+    CourtAvailability:
+      type: object
+      required: [courtId, from, to, availableIntervals]
+      properties:
+        courtId:
+          type: string
+          format: uuid
+        from:
+          type: string
+          format: date-time
+        to:
+          type: string
+          format: date-time
+        availableIntervals:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimeInterval"
+
+    CreateCourtBlockRequest:
+      allOf:
+        - $ref: "#/components/schemas/TimeInterval"
+        - type: object
+          properties:
+            reason:
+              type: string
+              maxLength: 255
+
+    CourtBlock:
+      allOf:
+        - $ref: "#/components/schemas/CreateCourtBlockRequest"
+        - type: object
+          required: [id, courtId, createdByUserId, createdAt]
+          properties:
+            id:
+              type: string
+              format: uuid
+            courtId:
+              type: string
+              format: uuid
+            createdByUserId:
+              type: string
+              format: uuid
+            createdAt:
+              type: string
+              format: date-time
+
+    CreateBookingRequest:
+      type: object
+      required: [courtId, startsAt, endsAt]
+      properties:
+        courtId:
+          type: string
+          format: uuid
+        playerUserId:
+          type: [string, "null"]
+          format: uuid
+          description: Required only when an owner books for another registered player.
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: string
+          format: date-time
+        notes:
+          type: string
+          maxLength: 1000
+
+    Booking:
+      type: object
+      required:
+        - id
+        - courtId
+        - playerUserId
+        - createdByUserId
+        - startsAt
+        - endsAt
+        - status
+        - source
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        courtId:
+          type: string
+          format: uuid
+        playerUserId:
+          type: string
+          format: uuid
+        createdByUserId:
+          type: string
+          format: uuid
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: string
+          format: date-time
+        status:
+          $ref: "#/components/schemas/BookingStatus"
+        source:
+          type: string
+          enum: [PLAYER, OWNER]
+        notes:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    BookingPage:
+      type: object
+      required: [items, page, size, totalItems, totalPages]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Booking"
+        page:
+          type: integer
+        size:
+          type: integer
+        totalItems:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    CancelBookingRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          maxLength: 500
+
+    CreateWaitlistEntryRequest:
+      type: object
+      required: [courtId, desiredStartsAt, desiredEndsAt]
+      properties:
+        courtId:
+          type: string
+          format: uuid
+        desiredStartsAt:
+          type: string
+          format: date-time
+        desiredEndsAt:
+          type: string
+          format: date-time
+
+    WaitlistEntry:
+      type: object
+      required:
+        - id
+        - courtId
+        - playerUserId
+        - desiredStartsAt
+        - desiredEndsAt
+        - status
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        courtId:
+          type: string
+          format: uuid
+        playerUserId:
+          type: string
+          format: uuid
+        desiredStartsAt:
+          type: string
+          format: date-time
+        desiredEndsAt:
+          type: string
+          format: date-time
+        status:
+          $ref: "#/components/schemas/WaitlistStatus"
+        createdAt:
+          type: string
+          format: date-time
+
+    WaitlistEntryPage:
+      type: object
+      required: [items, page, size, totalItems, totalPages]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/WaitlistEntry"
+        page:
+          type: integer
+        size:
+          type: integer
+        totalItems:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    FieldViolation:
+      type: object
+      required: [field, message]
+      properties:
+        field:
+          type: string
+        message:
+          type: string
+
+    Problem:
+      type: object
+      required: [type, title, status, detail, instance]
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri
+        code:
+          type: string
+          description: Stable application error code.
+        violations:
+          type: array
+          items:
+            $ref: "#/components/schemas/FieldViolation"
