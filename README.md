@@ -351,6 +351,8 @@ Configure the GitHub `production` environment with:
 
 The deploy hook is secret. Never print or commit it.
 
+The complete Neon, Render, and GitHub dashboard setup is documented in `../business-context/external-deployment-setup.md` when the service repository is checked out inside the project workspace.
+
 ## Smoke test
 
 ```bash
