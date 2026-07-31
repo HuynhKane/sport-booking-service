@@ -305,3 +305,57 @@ Start locally at $0/month. Deploy to free services only when a shareable portfol
 - [Render free services](https://render.com/docs/free)
 - [Koyeb instance pricing](https://www.koyeb.com/docs/reference/instances)
 - [Neon pricing](https://neon.com/pricing)
+# sport-booking-service
+
+## Local database
+
+```bash
+docker compose up -d database
+```
+
+The application defaults to the local database defined in `compose.yaml`.
+
+## Verification
+
+```bash
+./gradlew clean build
+```
+
+Docker must be running because integration and black-box tests use disposable PostGIS containers.
+
+## Production configuration
+
+The hosted service requires these secret environment variables:
+
+- `DATABASE_URL`: a JDBC URL such as `jdbc:postgresql://<host>/<database>?sslmode=require`
+- `DATABASE_USERNAME`: the Neon database role
+- `DATABASE_PASSWORD`: the Neon database password
+
+Do not use a raw `postgresql://` Neon connection string as `DATABASE_URL`, and do not commit credentials. Render sets `DATABASE_SSL_MODE=require` from `render.yaml`, independently enforcing TLS even if the URL omits its `sslmode` query parameter. Render supplies `PORT` and `RENDER_GIT_COMMIT`; the service uses both automatically.
+
+Operational endpoints are limited to:
+
+- `/actuator/health`
+- `/actuator/health/liveness`
+- `/actuator/health/readiness`
+- `/actuator/info`
+
+## Render deployment
+
+`render.yaml` defines the free Singapore Docker service and prompts for database secrets during initial Blueprint creation. Direct Render auto-deployment is disabled because `.github/workflows/cd.yml` verifies and deploys the exact `main` commit.
+
+Configure the GitHub `production` environment with:
+
+- Secret `RENDER_DEPLOY_HOOK_URL`
+- Variable `BACKEND_BASE_URL`, for example `https://sport-booking-service.onrender.com`
+
+The deploy hook is secret. Never print or commit it.
+
+## Smoke test
+
+```bash
+bash scripts/smoke-test.sh http://localhost:8080 local
+```
+
+The test waits for the expected commit, verifies application identity, and requires readiness status `UP`.
+# sport-booking-service

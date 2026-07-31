@@ -1,5 +1,6 @@
+.git
+.github
 .gradle
 .idea
-.git
 build
 *.iml
