@@ -330,6 +330,7 @@ The hosted service requires these secret environment variables:
 - `DATABASE_URL`: a JDBC URL such as `jdbc:postgresql://<host>/<database>?sslmode=require`
 - `DATABASE_USERNAME`: the Neon database role
 - `DATABASE_PASSWORD`: the Neon database password
+- `JWT_SECRET`: a random signing secret containing at least 32 bytes
 
 Do not use a raw `postgresql://` Neon connection string as `DATABASE_URL`, and do not commit credentials. Render sets `DATABASE_SSL_MODE=require` from `render.yaml`, independently enforcing TLS even if the URL omits its `sslmode` query parameter. Render supplies `PORT` and `RENDER_GIT_COMMIT`; the service uses both automatically.
 

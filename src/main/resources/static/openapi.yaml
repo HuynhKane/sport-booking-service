@@ -9,6 +9,7 @@ servers:
   - url: http://localhost:8080/api/v1
     description: Local development
 tags:
+  - name: Identity
   - name: Discovery
   - name: Venues
   - name: Courts
@@ -16,6 +17,54 @@ tags:
   - name: Waitlist
 
 paths:
+  /accounts:
+    post:
+      tags: [Identity]
+      summary: Register a local account
+      operationId: registerAccount
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterAccountRequest"
+      responses:
+        "201":
+          description: Account registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountSummary"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /auth/tokens:
+    post:
+      tags: [Identity]
+      summary: Exchange local credentials for an access token
+      operationId: createAccessToken
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthenticationRequest"
+      responses:
+        "200":
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthenticationResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
   /venues:
     get:
       tags: [Discovery]
@@ -534,6 +583,76 @@ components:
             $ref: "#/components/schemas/Problem"
 
   schemas:
+    Role:
+      type: string
+      enum: [PLAYER, OWNER]
+
+    RegisterAccountRequest:
+      type: object
+      required: [email, password, displayName, role]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 320
+        password:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 72
+          writeOnly: true
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 120
+        role:
+          $ref: "#/components/schemas/Role"
+
+    AccountSummary:
+      type: object
+      required: [id, email, displayName, roles]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        displayName:
+          type: string
+        roles:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/Role"
+
+    AuthenticationRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+          writeOnly: true
+
+    AuthenticationResult:
+      type: object
+      required: [accessToken, tokenType, expiresInSeconds]
+      properties:
+        accessToken:
+          type: string
+        tokenType:
+          type: string
+          const: Bearer
+        expiresInSeconds:
+          type: integer
+          format: int64
+          const: 3600
+
     VenueStatus:
       type: string
       enum: [DRAFT, ACTIVE, INACTIVE]
