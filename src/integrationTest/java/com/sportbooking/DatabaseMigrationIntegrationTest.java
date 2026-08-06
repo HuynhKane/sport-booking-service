@@ -45,7 +45,7 @@ class DatabaseMigrationIntegrationTest {
 				Integer.class
 		);
 
-		assertThat(migrationCount).isEqualTo(4);
+		assertThat(migrationCount).isEqualTo(5);
 		assertThat(extensionCount).isEqualTo(2);
 	}
 
@@ -56,9 +56,10 @@ class DatabaseMigrationIntegrationTest {
 		UUID courtId = UUID.randomUUID();
 
 		jdbcTemplate.update(
-				"INSERT INTO app_user (id, email, display_name) VALUES (?, ?, ?)",
+				"INSERT INTO app_user (id, email, password_hash, display_name) VALUES (?, ?, ?, ?)",
 				userId,
 				userId + "@example.com",
+				"integration-test-password-hash",
 				"Integration Test Player"
 		);
 		jdbcTemplate.update(

@@ -17,5 +17,7 @@ services:
         sync: false
       - key: DATABASE_SSL_MODE
         value: require
+      - key: JWT_SECRET
+        sync: false
       - key: JAVA_TOOL_OPTIONS
         value: -XX:MaxRAMPercentage=60.0 -XX:+ExitOnOutOfMemoryError
