@@ -56,6 +56,14 @@ testing {
 	suites {
 		test {
 			useJUnitJupiter()
+			sources {
+				java {
+					setSrcDirs(['src/test/unit/java'])
+				}
+				resources {
+					setSrcDirs(['src/test/unit/resources'])
+				}
+			}
 			targets {
 				all {
 					testTask.configure {
@@ -66,6 +74,14 @@ testing {
 		}
 
 		integrationTest(JvmTestSuite) {
+			sources {
+				java {
+					setSrcDirs(['src/test/integration/java'])
+				}
+				resources {
+					setSrcDirs(['src/test/integration/resources'])
+				}
+			}
 			dependencies {
 				implementation project()
 				implementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
@@ -84,11 +100,19 @@ testing {
 			}
 		}
 
-			blackboxTest(JvmTestSuite) {
-				dependencies {
-					implementation project()
-					implementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
-					implementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+		blackboxTest(JvmTestSuite) {
+			sources {
+				java {
+					setSrcDirs(['src/test/blackbox/java'])
+				}
+				resources {
+					setSrcDirs(['src/test/blackbox/resources'])
+				}
+			}
+			dependencies {
+				implementation project()
+				implementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
+				implementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
 				implementation 'org.springframework.boot:spring-boot-testcontainers'
 				implementation 'org.testcontainers:testcontainers-junit-jupiter'
 				implementation 'org.testcontainers:testcontainers-postgresql'
