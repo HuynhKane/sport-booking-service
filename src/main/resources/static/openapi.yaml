@@ -227,6 +227,70 @@ paths:
         "409":
           $ref: "#/components/responses/Conflict"
 
+  /venues/{venueId}/operating-hours:
+    parameters:
+      - $ref: "#/components/parameters/VenueId"
+    put:
+      tags: [Venues]
+      summary: Replace an owned venue's complete weekly operating schedule
+      operationId: replaceVenueOperatingHours
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReplaceOperatingHoursRequest"
+      responses:
+        "200":
+          description: Complete replacement weekly schedule
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VenueOperatingHours"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /courts/{courtId}:
+    parameters:
+      - $ref: "#/components/parameters/CourtId"
+    patch:
+      tags: [Courts]
+      summary: Update a court at an owned venue
+      operationId: updateCourt
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCourtRequest"
+      responses:
+        "200":
+          description: Court updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Court"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
   /courts/{courtId}/availability:
     parameters:
       - $ref: "#/components/parameters/CourtId"
@@ -673,9 +737,13 @@ components:
         latitude:
           type: number
           format: double
+          minimum: -90
+          maximum: 90
         longitude:
           type: number
           format: double
+          minimum: -180
+          maximum: 180
 
     CreateVenueRequest:
       type: object
@@ -793,6 +861,20 @@ components:
           type: string
           maxLength: 1000
 
+    UpdateCourtRequest:
+      type: object
+      minProperties: 1
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 1000
+        status:
+          $ref: "#/components/schemas/CourtStatus"
+
     Court:
       type: object
       required: [id, venueId, name, status]
@@ -809,6 +891,42 @@ components:
           type: string
         status:
           $ref: "#/components/schemas/CourtStatus"
+
+    OperatingPeriod:
+      type: object
+      required: [dayOfWeek, opensAt, closesAt]
+      properties:
+        dayOfWeek:
+          type: integer
+          minimum: 1
+          maximum: 7
+        opensAt:
+          type: string
+          format: time
+        closesAt:
+          type: string
+          format: time
+
+    ReplaceOperatingHoursRequest:
+      type: object
+      required: [periods]
+      properties:
+        periods:
+          type: array
+          items:
+            $ref: "#/components/schemas/OperatingPeriod"
+
+    VenueOperatingHours:
+      type: object
+      required: [venueId, periods]
+      properties:
+        venueId:
+          type: string
+          format: uuid
+        periods:
+          type: array
+          items:
+            $ref: "#/components/schemas/OperatingPeriod"
 
     TimeInterval:
       type: object

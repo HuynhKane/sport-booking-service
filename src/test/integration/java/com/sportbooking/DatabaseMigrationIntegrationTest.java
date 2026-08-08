@@ -85,6 +85,28 @@ class DatabaseMigrationIntegrationTest {
 		).isInstanceOf(DataIntegrityViolationException.class);
 	}
 
+	@Test
+	void enforcesCourtNameUniquenessWithinOneVenue() {
+		UUID venueId = UUID.randomUUID();
+		jdbcTemplate.update(
+				"""
+				INSERT INTO venue (id, name, address_line, district, location)
+				VALUES (?, 'Unique Court Venue', 'Test address', 'District 1',
+				        ST_SetSRID(ST_MakePoint(106.7, 10.78), 4326)::geography)
+				""",
+				venueId
+		);
+		jdbcTemplate.update(
+				"INSERT INTO court (id, venue_id, name) VALUES (?, ?, 'Court 1')",
+				UUID.randomUUID(), venueId
+		);
+
+		assertThatThrownBy(() -> jdbcTemplate.update(
+				"INSERT INTO court (id, venue_id, name) VALUES (?, ?, 'Court 1')",
+				UUID.randomUUID(), venueId
+		)).isInstanceOf(DataIntegrityViolationException.class);
+	}
+
 	private void insertBooking(UUID courtId, UUID userId, String startsAt, String endsAt) {
 		jdbcTemplate.update(
 				"""
